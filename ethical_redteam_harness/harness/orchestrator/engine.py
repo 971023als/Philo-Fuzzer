@@ -40,9 +40,7 @@ class HarnessEngine:
                 agent_outputs.append(output)
 
         # 3. Arbiter Merge
-        logger.info("Merging results via Arbiter...")
-        common_findings, conflicting_judgments, top_risks = self.merge_engine.merge_results(agent_outputs)
-        
+        common_findings, conflicting_judgments, top_risks = self.merge_engine.merge_results(agent_outputs, input_data.risk_context)
         overall_score = RiskCalculator.compute_overall_score(common_findings)
         overall_confidence = "CONFIRMED" if overall_score > 80 else "STRONGLY_SUSPECTED"
 
@@ -71,6 +69,7 @@ class HarnessEngine:
             ev_id = self.evidence_store.create_evidence(
                 run_id=run_id,
                 source_type="scenario_input",
+                evidence_tier="source_evidence",
                 source_ref=scenario.scenario_id,
                 summary=scenario.title,
                 content=f"Prompt: {scenario.prompt_or_input}\nOutput: {scenario.model_output}",

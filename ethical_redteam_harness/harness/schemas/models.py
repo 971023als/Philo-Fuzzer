@@ -3,13 +3,13 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 
 # ==============================================================================
-# 1. Input Schemas (입력 스키마)
+# 1. Input Schemas
 # ==============================================================================
 
 class RiskContext(BaseModel):
-    high_risk: bool = Field(default=False, description="고위험 도메인 여부")
-    sensitive_data: bool = Field(default=False, description="민감 정보 취급 여부")
-    user_type: str = Field(default="general", description="사용자 유형 (예: 일반, 미성년자, 취약계층 등)")
+    high_risk: bool = Field(default=False)
+    sensitive_data: bool = Field(default=False)
+    user_type: str = Field(default="general")
 
 class Scenario(BaseModel):
     scenario_id: str
@@ -45,42 +45,60 @@ class InputSchema(BaseModel):
     review_scope: List[str] = Field(default_factory=list)
     constraints: Constraints = Field(default_factory=Constraints)
 
-
 # ==============================================================================
-# 2. Evidence Registry Schemas (증거 레지스트리 스키마)
+# 2. Evidence Registry Schemas
 # ==============================================================================
 
 class EvidenceRecord(BaseModel):
     evidence_id: str
-    schema_version: str = Field(default="1.0")
+    schema_version: str = Field(default="2.0")
     run_id: str
     source_type: Literal["scenario_input", "model_output", "policy_excerpt", "derived_claim"]
+    evidence_tier: Literal["source_evidence", "derived_evidence", "agent_interpretation", "arbiter_summary"]
     source_ref: str
     summary: str
     content: str
     created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
     tags: List[str] = Field(default_factory=list)
-    parent_evidence_ids: List[str] = Field(default_factory=list)
-
+    parent_evidence_ids: List[str] = Field(default_factory=list) # Derived Claim에서 필수적
 
 # ==============================================================================
-# 3. Agent Output Schemas (개별 철학자 에이전트 출력 스키마)
+# 3. Agent Output Schemas
 # ==============================================================================
 
 ConfidenceLevel = Literal["CONFIRMED", "STRONGLY_SUSPECTED", "NEEDS_VERIFICATION"]
 RiskLevel = Literal["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
 
+class QuestionResult(BaseModel):
+    question_id: str
+    passed: bool
+    rationale: str
+
+class PrincipleScore(BaseModel):
+    principle_name: str
+    weight: float
+
 class AgentFinding(BaseModel):
     finding_id: Optional[str] = None
     finding_title: str
     finding_summary: str
+    finding_groups: List[str] = Field(default_factory=list)
     risk_level: RiskLevel
     confidence: ConfidenceLevel
-    evidence_ids: List[str]
+    evidence_ids: List[str]                  
+    source_evidence: List[str] = Field(default_factory=list)   # 원본 증거 매핑 명시
+    derived_claim: List[str] = Field(default_factory=list)     # 파생 해석 명시
+    finding_origin: str = Field(default="agent")
+    evidence_strength: str = Field(default="High")
+    question_results: List[QuestionResult] = Field(default_factory=list)
+    principle_scores: Dict[str, float] = Field(default_factory=dict)
     violated_principles: List[str] = Field(default_factory=list)
     counter_argument: str = Field(default="")
+    counter_argument_strength: Literal["Weak", "Medium", "Strong", "None"] = Field(default="None")
     recommended_actions: List[str] = Field(default_factory=list)
+    policy_alignment: str = Field(default="N/A") 
     needs_human_review: bool = Field(default=False)
+    human_review_reason: str = Field(default="")
 
 class AgentOutputSchema(BaseModel):
     agent_name: str
@@ -88,15 +106,18 @@ class AgentOutputSchema(BaseModel):
     ethical_frame: str
     findings: List[AgentFinding]
 
-
 # ==============================================================================
-# 4. Arbiter Output Schemas (총괄 심사 출력 스키마)
+# 4. Arbiter Output Schemas
 # ==============================================================================
 
 class ConflictingJudgment(BaseModel):
-    issue: str
-    judgments: List[Dict[str, str]]  # e.g., [{"agent": "socrates", "view": "..."}]
-    synthesis: str
+    conflict_topic: str
+    agents_involved: List[str]
+    disagreement_reason: str
+    evidence_overlap: List[str]
+    judgments: List[Dict[str, str]]
+    arbiter_resolution: str
+    residual_risk: str
 
 class ArbiterOutputSchema(BaseModel):
     executive_summary: str

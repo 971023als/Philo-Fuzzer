@@ -1,5 +1,4 @@
 import os
-import json
 from harness.schemas.models import ArbiterOutputSchema
 
 MARKDOWN_TEMPLATE = """# 철학자 기반 AI 윤리 레드팀 평가 보고서
@@ -11,37 +10,53 @@ MARKDOWN_TEMPLATE = """# 철학자 기반 AI 윤리 레드팀 평가 보고서
 {{ executive_summary }}
 
 ## 2. 우선 조치 권고 (Top Risks & Actions)
-{% for action in priority_actions %}
-- {{ action }}
+|순위|위험 요소|권고사항|
+|---|---|---|
+{% for action in priority_actions %}|{{ loop.index }}|핵심 정책 위반 대응|{{ action }}|
 {% endfor %}
 
-## 3. 공통 윤리 취약점 (Common Findings)
-{% for finding in common_findings %}
-### [{{ finding.risk_level }}] {{ finding.finding_title }} (Confidence: {{ finding.confidence }})
-- **Summary**: {{ finding.finding_summary }}
-- **Evidence IDs**: {{ finding.evidence_ids | join(', ') }}
-- **Violated Principles**: {{ finding.violated_principles | join(', ') }}
-- **Counter Argument**: {{ finding.counter_argument }}
-- **Recommendations**:
-{% for rec in finding.recommended_actions %}  - {{ rec }}
-{% endfor %}
+## 3. 철학자별 Finding 요약 표 (Common Findings)
+|Risk|Title|Groups|Evidence Link|Confidence|Human Review|
+|---|---|---|---|---|---|
+{% for f in common_findings %}|**{{ f.risk_level }}**|{{ f.finding_title }}|{{ f.finding_groups | join(', ') }}|{{ f.evidence_ids | join(', ') }} (Strength: {{ f.evidence_strength }})|{{ f.confidence }}|{% if f.needs_human_review %}Yes ({{ f.human_review_reason }}){% else %}No{% endif %}|
 {% endfor %}
 
-## 4. 상충 판단 분석 (Conflicting Judgments)
+### 3.1 상세 취약점 분석 내역
+{% for f in common_findings %}
+#### [{{ f.risk_level }}] {{ f.finding_title }}
+- **분리된 증거 계층 추적**:
+  - `Source Evidence`: {{ f.source_evidence | join(', ') if f.source_evidence else 'N/A' }}
+  - `Derived Claim`: {{ f.derived_claim | join(', ') if f.derived_claim else 'N/A' }} 
+- **정책 정렬 충돌도 (Policy Alignment)**: {{ f.policy_alignment }}
+- **Violated Principles**: {{ f.violated_principles | join(', ') }}
+- **의견 및 논거**: 
+  - Summary: {{ f.finding_summary }}
+  - Counter Argument [Strength: **{{ f.counter_argument_strength }}**]: {{ f.counter_argument }}
+- **권고 조치 (Recommendations)**:
+{% for rec in f.recommended_actions %}  - {{ rec }}{% endfor %}
+
+{% endfor %}
+
+## 4. 상충 판단 표 (Conflicting Judgments)
+|Conflict Topic|Agents Involved|Disagreement Reason|Evidence|Arbiter Resolution|Residual Risk|
+|---|---|---|---|---|---|
+{% for conflict in conflicting_judgments %}|**{{ conflict.conflict_topic }}**|{{ conflict.agents_involved | join(', ') }}|{{ conflict.disagreement_reason }}|{{ conflict.evidence_overlap | join(', ') }}|{{ conflict.arbiter_resolution }}|{{ conflict.residual_risk }}|
+{% endfor %}
+
+### 4.1 상충 판단 세부 진영
 {% for conflict in conflicting_judgments %}
-### {{ conflict.issue }}
-- **Synthesis (병합 의견)**: {{ conflict.synthesis }}
-- **세부 의견 목록**:
+#### {{ conflict.conflict_topic }} 상세 대립
 {% for judge in conflict.judgments %}  - **{{ judge.agent }}**: {{ judge.view }}
 {% endfor %}
 {% endfor %}
 
-## 5. 재시험 기준
-{% for criteria in retest_criteria %}
-- {{ criteria }}
+## 5. 재시험 기준 표 (Retest Criteria)
+|재시험 항목|기준 조건|
+|---|---|
+{% for criteria in retest_criteria %}|시나리오 검증|{{ criteria }}|
 {% endfor %}
 
-## 6. 결론 (Final Opinion)
+## 6. 한계 및 유보 사항 (Final Opinion)
 {{ final_opinion }}
 """
 
