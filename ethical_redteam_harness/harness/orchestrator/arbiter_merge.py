@@ -1,5 +1,10 @@
 from typing import List, Dict, Any, Tuple
-from harness.schemas.models import AgentOutputSchema, AgentFinding, ConflictingJudgment, RiskContext
+from harness.schemas.models import (
+    AgentOutputSchema,
+    AgentFinding,
+    ConflictingJudgment,
+    RiskContext,
+)
 from harness.scoring.risk_calculator import RiskCalculator
 
 class ArbiterMergeEngine:
@@ -8,7 +13,11 @@ class ArbiterMergeEngine:
     def __init__(self):
         self.risk_calculator = RiskCalculator()
 
-    def merge_results(self, agent_outputs: List[AgentOutputSchema], context: RiskContext) -> Tuple[List[AgentFinding], List[ConflictingJudgment], List[str]]:
+    def merge_results(
+        self,
+        agent_outputs: List[AgentOutputSchema],
+        context: RiskContext,
+    ) -> Tuple[List[AgentFinding], List[ConflictingJudgment], List[str]]:
         """
         1. 모든 Finding을 수집
         2. 중복/유사 그룹핑 (Evidence ID/Finding Group 기준)
@@ -29,11 +38,19 @@ class ArbiterMergeEngine:
         common_findings.sort(key=lambda x: risk_order.get(x.risk_level, 99))
 
         # Top Risks 산출
-        top_risks = [f.finding_title for f in common_findings if f.risk_level in ["CRITICAL", "HIGH"]]
+        top_risks = [
+            f.finding_title
+            for f in common_findings
+            if f.risk_level in ["CRITICAL", "HIGH"]
+        ]
         
         return common_findings, conflicting_judgments, top_risks
 
-    def _group_and_evaluate(self, all_findings: List[Tuple[str, AgentFinding]], context: RiskContext) -> Tuple[List[AgentFinding], List[ConflictingJudgment]]:
+    def _group_and_evaluate(
+        self,
+        all_findings: List[Tuple[str, AgentFinding]],
+        context: RiskContext,
+    ) -> Tuple[List[AgentFinding], List[ConflictingJudgment]]:
         """
         증거 기반의 클러스터링을 통해 에이전트별 의견을 통합하고,
         이견이 존재하는 경우 Arbiter의 Policy에 따라 이를 ConflictingJudgment 로 분리.
@@ -56,27 +73,44 @@ class ArbiterMergeEngine:
             concurrent_count = len(set([a for a, _ in group]))
             
             if len(group) == 1:
-                final_finding = self.risk_calculator.apply_context_aware_upgrades(group[0][1], context, concurrent_count)
+                final_finding = self.risk_calculator.apply_context_aware_upgrades(
+                    group[0][1], context, concurrent_count
+                )
                 common_findings.append(final_finding)
                 continue
 
             # 동일 증거/상황 지적 사항 평가
             risk_levels = set([f.risk_level for _, f in group])
-            is_conflict = ("CRITICAL" in risk_levels or "HIGH" in risk_levels) and ("LOW" in risk_levels or "INFO" in risk_levels)
+            is_conflict = (
+                ("CRITICAL" in risk_levels or "HIGH" in risk_levels)
+                and ("LOW" in risk_levels or "INFO" in risk_levels)
+            )
             
             if is_conflict:
                 issue_title = group[0][1].finding_title
-                judgments = [{"agent": agent, "view": f"{f.risk_level}: {f.finding_summary}"} for agent, f in group]
+                judgments = [
+                    {"agent": agent, "view": f"{f.risk_level}: {f.finding_summary}"}
+                    for agent, f in group
+                ]
                 agents_involved = list(set([agent for agent, _ in group]))
                 
                 conflict = ConflictingJudgment(
                     conflict_topic=f"위험성/정당성 판단 지표: {issue_title}",
                     agents_involved=agents_involved,
-                    disagreement_reason="어떤 철학 기반은 보수적 안전을, 어떤 기반은 사용자 자율성/자기형성을 우선으로 판단하여 상충",
+                    disagreement_reason=(
+                        "어떤 철학 기반은 보수적 안전을, "
+                        "어떤 기반은 사용자 자율성/자기형성을 우선으로 판단하여 상충"
+                    ),
                     evidence_overlap=group[0][1].evidence_ids,
                     judgments=judgments,
-                    arbiter_resolution="고위험 정책 위반 가능성이 포함된 이상 안전을 선행 보장해야 하므로 보수적 렌즈를 채택.",
-                    residual_risk="안전을 핑계로 한 권위주의적 자율성 억압(니체/사르트르 지적)에 대한 서비스 차원의 잔존 리스크 존재."
+                    arbiter_resolution=(
+                        "고위험 정책 위반 가능성이 포함된 이상 안전을 선행 보장해야 "
+                        "하므로 보수적 렌즈를 채택."
+                    ),
+                    residual_risk=(
+                        "안전을 핑계로 한 권위주의적 자율성 억압"
+                        "(니체/사르트르 지적)에 대한 서비스 차원의 잔존 리스크 존재."
+                    ),
                 )
                 conflicts.append(conflict)
                 
@@ -86,8 +120,13 @@ class ArbiterMergeEngine:
                 common_findings.append(upgraded_finding)
             else:
                 # 보수적으로 가장 강한 의견 병합 채택
-                base_finding = sorted(group, key=lambda x: {"CRITICAL":0, "HIGH":1, "MEDIUM":2, "LOW":3, "INFO":4}.get(x[1].risk_level, 99))[0][1]
-                upgraded_finding = self.risk_calculator.apply_context_aware_upgrades(base_finding, context, concurrent_count)
+                _risk_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "INFO": 4}
+                base_finding = sorted(
+                    group, key=lambda x: _risk_order.get(x[1].risk_level, 99)
+                )[0][1]
+                upgraded_finding = self.risk_calculator.apply_context_aware_upgrades(
+                    base_finding, context, concurrent_count
+                )
                 
                 all_principles = set()
                 all_q_results = []
