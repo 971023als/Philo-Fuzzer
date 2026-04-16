@@ -4,9 +4,14 @@
 
 # Philo-Fuzzer 🏛️
 
-> **由 13 个哲学家智能体视角驱动的实用 AI 伦理红蓝对抗评估框架**
+> 使用哲学家智能体视角评估生成式 AI 模型响应伦理漏洞的 AI 伦理红队评估框架
 
-Philo-Fuzzer 通过模拟历史上最伟大思想家的多智能体系统来评估、测试和强化生成式 AI 模型。每个哲学家智能体能够揭示 AI 响应中的存在性风险、伦理漏洞和逻辑谬误，远超简单安全检查，生成深度、可审计的伦理合规报告。
+Philo-Fuzzer 对 AI 模型输出运行以历史哲学家命名的多智能体模拟。每个智能体应用自己的
+检查清单和原则来揭示伦理问题，之后仲裁者引擎对发现结果进行合并和冲突解决，生成结构化
+审计报告。
+
+> **注意**：智能体评估逻辑目前以 `main.py::_mock_simulate()` 中的模拟仿真实现。
+> 真实 LLM 集成是下一步计划。
 
 ---
 
@@ -223,21 +228,23 @@ arbiter_summary        ←  合并、冲突解决后的最终判断（只读）
 
 ## 快速开始 ⚙️
 
-**要求**：Python 3.10+
+**要求**：Python 3.10+ 及以下软件包：
 
 ```bash
-# 1. 克隆仓库
+pip install pydantic jinja2 pyyaml
+```
+
+**克隆并运行**：
+
+```bash
 git clone https://github.com/971023als/Philo-Fuzzer.git
-cd Philo-Fuzzer
-
-# 2. 安装依赖
-pip install pydantic
-
-# 3. 运行 Mock E2E 评估框架
-python ethical_redteam_harness/main.py
+cd Philo-Fuzzer/ethical_redteam_harness
+python main.py
 ```
 
 报告保存至 `ethical_redteam_harness/outputs/`。
+
+> 当前仓库中没有 `requirements.txt`、`pyproject.toml` 或 `setup.py`。请手动安装上述依赖。
 
 ---
 
@@ -286,5 +293,5 @@ python ethical_redteam_harness/main.py
 
 ## 许可证 📜
 
-本项目基于 **MIT 许可证** 发布。  
-详见 [LICENSE](LICENSE) 文件。
+当前仓库中没有 `LICENSE` 文件。
+请在重复使用前联系仓库所有者。

@@ -4,9 +4,17 @@
 
 # Philo-Fuzzer 🏛️
 
-> **Un entorno operacional de Red-Teaming de Ética de IA impulsado por 13 lentes de agentes filósofos**
+> Un arnés de evaluación de ética en IA que usa lentes de agentes filósofos
+> para detectar vulnerabilidades éticas en respuestas de modelos generativos de IA
 
-Philo-Fuzzer evalúa, prueba y refuerza modelos de IA generativa a través de simulaciones multi-agente que imitan a los pensadores más grandes de la historia. Cada agente filósofo descubre riesgos existenciales, vulnerabilidades éticas y falacias lógicas en las respuestas de la IA, yendo mucho más allá de las simples verificaciones de seguridad para producir informes profundos de auditoría de cumplimiento ético.
+Philo-Fuzzer ejecuta simulaciones multiagente —cada una nombrada tras un filósofo
+histórico— sobre salidas de modelos de IA. Cada agente aplica su propia lista de
+comprobación y principios para detectar problemas éticos. El motor Arbiter fusiona y
+resuelve conflictos entre hallazgos, produciendo un informe de auditoría estructurado.
+
+> **Nota**: La lógica de evaluación de agentes se implementa actualmente como
+> simulaciones de prueba en `main.py::_mock_simulate()`.
+> La integración real con LLM es un próximo paso planificado.
 
 ---
 
@@ -209,21 +217,24 @@ arbiter_summary        ←  Juicio final fusionado y resuelto (solo lectura)
 
 ## Empezando ⚙️
 
-**Requisitos**: Python 3.10+
+**Requisitos**: Python 3.10+ y los siguientes paquetes:
 
 ```bash
-# 1. Clonar el repositorio
+pip install pydantic jinja2 pyyaml
+```
+
+**Clonar y ejecutar**:
+
+```bash
 git clone https://github.com/971023als/Philo-Fuzzer.git
-cd Philo-Fuzzer
-
-# 2. Instalar dependencias
-pip install pydantic
-
-# 3. Ejecutar el harness Mock E2E
-python ethical_redteam_harness/main.py
+cd Philo-Fuzzer/ethical_redteam_harness
+python main.py
 ```
 
 Los informes se guardan en `ethical_redteam_harness/outputs/`.
+
+> Actualmente el repositorio no tiene `requirements.txt`, `pyproject.toml` ni `setup.py`.
+> Instale las dependencias indicadas arriba manualmente.
 
 ---
 
@@ -272,5 +283,5 @@ Los informes se guardan en `ethical_redteam_harness/outputs/`.
 
 ## Licencia 📜
 
-Este proyecto está licenciado bajo la **Licencia MIT**.  
-Consulte [LICENSE](LICENSE) para más detalles.
+El repositorio no incluye actualmente un archivo `LICENSE`.
+Contacte al propietario del repositorio antes de reutilizar.
