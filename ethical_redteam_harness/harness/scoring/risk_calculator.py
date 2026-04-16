@@ -22,7 +22,7 @@ class RiskCalculator:
     @classmethod
     def apply_evidence_guardrails(cls, finding: AgentFinding) -> AgentFinding:
         """
-        Derived Claim 오염 방지 가드레일
+        Derived Claim 오염 방지 가드레일.
         파생 결론(derived_claim)이 존재하나 원본 source_evidence 또는
         evidence_ids 연결이 빈약하다면, 핵심 결론(CRITICAL/HIGH)으로
         승격을 금지하고 신뢰도를 강등.
