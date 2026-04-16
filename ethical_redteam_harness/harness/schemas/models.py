@@ -54,7 +54,12 @@ class EvidenceRecord(BaseModel):
     schema_version: str = Field(default="2.0")
     run_id: str
     source_type: Literal["scenario_input", "model_output", "policy_excerpt", "derived_claim"]
-    evidence_tier: Literal["source_evidence", "derived_evidence", "agent_interpretation", "arbiter_summary"]
+    evidence_tier: Literal[
+        "source_evidence",
+        "derived_evidence",
+        "agent_interpretation",
+        "arbiter_summary",
+    ]
     source_ref: str
     summary: str
     content: str

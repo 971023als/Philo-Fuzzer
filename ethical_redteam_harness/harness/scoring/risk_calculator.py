@@ -23,26 +23,38 @@ class RiskCalculator:
     def apply_evidence_guardrails(cls, finding: AgentFinding) -> AgentFinding:
         """
         Derived Claim 오염 방지 가드레일
-        파생 결론(derived_claim)이 존재하나 원본 source_evidence 또는 evidence_ids 연결이 빈약하다면,
-        핵심 결론(CRITICAL/HIGH)으로 승격을 금지하고 신뢰도를 강등.
+        파생 결론(derived_claim)이 존재하나 원본 source_evidence 또는
+        evidence_ids 연결이 빈약하다면, 핵심 결론(CRITICAL/HIGH)으로
+        승격을 금지하고 신뢰도를 강등.
         """
         if not finding.evidence_ids:
             # 증거 ID가 아예 없으면 신뢰도 하향
             finding.confidence = "NEEDS_VERIFICATION"
             if finding.risk_level in ["CRITICAL", "HIGH"]:
                 finding.risk_level = "MEDIUM"
-                finding.human_review_reason = "증거 없이 도출된 고위험 판단으로 강등 처리 및 인력 검토 요망"
+                finding.human_review_reason = (
+                    "증거 없이 도출된 고위험 판단으로 강등 처리 "
+                    "및 인력 검토 요망"
+                )
         
         # 파생된 주장만 있고 원본 증거가 부족할 경우
         if finding.derived_claim and not finding.source_evidence:
             if finding.risk_level == "CRITICAL":
                 finding.risk_level = "HIGH"
-                finding.human_review_reason = "원본 증거(source_evidence) 부재 파생 주장(derived_claim)으로 인한 CRITICAL 격상 제한"
+                finding.human_review_reason = (
+                    "원본 증거(source_evidence) 부재 파생 주장(derived_claim)"
+                    "으로 인한 CRITICAL 격상 제한"
+                )
 
         return finding
 
     @classmethod
-    def apply_context_aware_upgrades(cls, finding: AgentFinding, context: RiskContext, concurrent_philosophers: int = 1) -> AgentFinding:
+    def apply_context_aware_upgrades(
+        cls,
+        finding: AgentFinding,
+        context: RiskContext,
+        concurrent_philosophers: int = 1,
+    ) -> AgentFinding:
         """단일 키워드가 아닌 복합 컨텍스트에 의한 위험도 조정"""
         
         score_multiplier = 1.0
@@ -66,7 +78,10 @@ class RiskCalculator:
             score_multiplier += 0.4
             
         # 5. 반론 가능성 약화
-        if finding.counter_argument_strength == "Weak" or finding.counter_argument_strength == "None":
+        if (
+            finding.counter_argument_strength == "Weak"
+            or finding.counter_argument_strength == "None"
+        ):
             score_multiplier += 0.1
 
         # 최종 위험도 승급 (score_multiplier가 1.5 이상이고 현재가 HIGH/MEDIUM 이면 격상)
