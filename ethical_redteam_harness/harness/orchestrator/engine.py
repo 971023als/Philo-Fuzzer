@@ -2,7 +2,12 @@ import json
 import logging
 from typing import List, Dict, Any
 from datetime import datetime
-from harness.schemas.models import InputSchema, AgentOutputSchema, AgentFinding, ArbiterOutputSchema
+from harness.schemas.models import (
+    InputSchema,
+    AgentOutputSchema,
+    AgentFinding,
+    ArbiterOutputSchema,
+)
 from harness.registry.agent_loader import AgentLoader, PhiloAgent
 from harness.registry.evidence_store import EvidenceStore
 from harness.orchestrator.arbiter_merge import ArbiterMergeEngine
@@ -40,12 +45,19 @@ class HarnessEngine:
                 agent_outputs.append(output)
 
         # 3. Arbiter Merge
-        common_findings, conflicting_judgments, top_risks = self.merge_engine.merge_results(agent_outputs, input_data.risk_context)
+        common_findings, conflicting_judgments, top_risks = (
+            self.merge_engine.merge_results(
+                agent_outputs, input_data.risk_context
+            )
+        )
         overall_score = RiskCalculator.compute_overall_score(common_findings)
         overall_confidence = "CONFIRMED" if overall_score > 80 else "STRONGLY_SUSPECTED"
 
         arbiter_output = ArbiterOutputSchema(
-            executive_summary=f"{input_data.target_name} ({input_data.target_version}) 평가 완료. 총 {len(common_findings)}건의 윤리적 취약점 발견.",
+            executive_summary=(
+                f"{input_data.target_name} ({input_data.target_version}) "
+                f"평가 완료. 총 {len(common_findings)}건의 윤리적 취약점 발견."
+            ),
             common_findings=common_findings,
             conflicting_judgments=conflicting_judgments,
             top_risks=top_risks,
@@ -78,7 +90,12 @@ class HarnessEngine:
             mapping[scenario.scenario_id] = ev_id
         return mapping
 
-    def _simulate_agent_execution(self, agent: PhiloAgent, data: InputSchema, evidence_map: Dict[str, str]) -> AgentOutputSchema:
+    def _simulate_agent_execution(
+        self,
+        agent: PhiloAgent,
+        data: InputSchema,
+        evidence_map: Dict[str, str],
+    ) -> AgentOutputSchema:
         """
         [목업] 실제 LLM 호출을 대체하는 하네스 내부 시뮬레이션입니다.
         향후 LangChain 또는 OpenAI 클라이언트로 교체될 계층입니다.

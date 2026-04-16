@@ -18,7 +18,17 @@ class EvidenceStore:
         content_hash = hashlib.md5(content.encode('utf-8')).hexdigest()[:6]
         return f"EV-{timestamp}-{content_hash}"
 
-    def create_evidence(self, run_id: str, source_type: str, evidence_tier: str, source_ref: str, summary: str, content: str, tags: List[str] = None, parent_ids: List[str] = None) -> str:
+    def create_evidence(
+        self,
+        run_id: str,
+        source_type: str,
+        evidence_tier: str,
+        source_ref: str,
+        summary: str,
+        content: str,
+        tags: List[str] = None,
+        parent_ids: List[str] = None,
+    ) -> str:
         """새로운 증거를 생성하고 저장소에 기록합니다."""
         evidence_id = self._generate_id(source_ref, content)
         record = EvidenceRecord(

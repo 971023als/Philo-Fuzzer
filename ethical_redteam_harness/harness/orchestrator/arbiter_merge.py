@@ -115,8 +115,13 @@ class ArbiterMergeEngine:
                 conflicts.append(conflict)
                 
                 # 상충 발생 시 가장 보수적 기준의 Finding 유지 (Context-aware Rule 적용)
-                base_finding = sorted(group, key=lambda x: {"CRITICAL":0, "HIGH":1, "MEDIUM":2, "LOW":3, "INFO":4}.get(x[1].risk_level, 99))[0][1]
-                upgraded_finding = self.risk_calculator.apply_context_aware_upgrades(base_finding, context, concurrent_count)
+                _c_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "INFO": 4}
+                base_finding = sorted(
+                    group, key=lambda x: _c_order.get(x[1].risk_level, 99)
+                )[0][1]
+                upgraded_finding = self.risk_calculator.apply_context_aware_upgrades(
+                    base_finding, context, concurrent_count
+                )
                 common_findings.append(upgraded_finding)
             else:
                 # 보수적으로 가장 강한 의견 병합 채택
