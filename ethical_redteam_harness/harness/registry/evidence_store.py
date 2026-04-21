@@ -14,9 +14,19 @@ class EvidenceStore:
 
     def _generate_id(self, source_ref: str, content: str) -> str:
         """내용 기반의 해시 문자열을 결합하여 고유 evidence_id를 생성합니다."""
-        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-        content_hash = hashlib.md5(content.encode('utf-8')).hexdigest()[:6]
-        return f"EV-{timestamp}-{content_hash}"
+        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
+        seed = f"{source_ref}\n{timestamp}\n{content}"
+        content_hash = hashlib.sha256(seed.encode("utf-8")).hexdigest()[:8]
+        evidence_id = f"EV-{timestamp}-{content_hash}"
+        counter = 1
+        while evidence_id in self._cache or os.path.exists(
+            os.path.join(self.base_dir, f"{evidence_id}.json")
+        ):
+            collision_seed = f"{seed}\n{counter}"
+            content_hash = hashlib.sha256(collision_seed.encode("utf-8")).hexdigest()[:8]
+            evidence_id = f"EV-{timestamp}-{content_hash}"
+            counter += 1
+        return evidence_id
 
     def create_evidence(
         self,
