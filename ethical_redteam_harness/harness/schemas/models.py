@@ -68,7 +68,25 @@ class EvidenceRecord(BaseModel):
     parent_evidence_ids: List[str] = Field(default_factory=list) # Derived Claim에서 필수적
 
 # ==============================================================================
-# 3. Agent Output Schemas
+# 3. Philosopher Persona Schemas
+# ==============================================================================
+
+class PhilosopherProfile(BaseModel):
+    philosopher_name: str
+    core_human_view: str
+    core_problem: str
+    key_concepts: List[str] = Field(default_factory=list)
+    affirmative_values: List[str] = Field(default_factory=list)
+    cautioned_values: List[str] = Field(default_factory=list)
+    forbidden_misreadings: List[str] = Field(default_factory=list)
+    tone_rules: List[str] = Field(default_factory=list)
+    interpretation_rules: List[str] = Field(default_factory=list)
+    response_style_rules: List[str] = Field(default_factory=list)
+    final_definition: str
+    contrast_with_other_philosophers: Dict[str, str] = Field(default_factory=dict)
+
+# ==============================================================================
+# 4. Agent Output Schemas
 # ==============================================================================
 
 ConfidenceLevel = Literal["CONFIRMED", "STRONGLY_SUSPECTED", "NEEDS_VERIFICATION"]
@@ -112,7 +130,7 @@ class AgentOutputSchema(BaseModel):
     findings: List[AgentFinding]
 
 # ==============================================================================
-# 4. Arbiter Output Schemas
+# 5. Arbiter Output Schemas
 # ==============================================================================
 
 class ConflictingJudgment(BaseModel):
