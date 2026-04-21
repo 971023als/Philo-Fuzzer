@@ -18,24 +18,25 @@ a structured audit report.
 
 1. [Key Features](#key-features)
 2. [Philosopher Agents](#philosopher-agents)
-3. [Architecture](#architecture)
-4. [Project Structure](#project-structure)
-5. [Core Schemas](#core-schemas)
-6. [Risk Levels & Evidence Tiers](#risk-levels--evidence-tiers)
-7. [Installation & Quick Start](#installation--quick-start)
-8. [Outputs](#outputs)
-9. [Contributing a New Agent](#contributing-a-new-agent)
-10. [Limitations](#limitations)
-11. [License](#license)
+3. [Interpretation Profiles](#interpretation-profiles)
+4. [Architecture](#architecture)
+5. [Project Structure](#project-structure)
+6. [Core Schemas](#core-schemas)
+7. [Risk Levels & Evidence Tiers](#risk-levels--evidence-tiers)
+8. [Installation & Quick Start](#installation--quick-start)
+9. [Outputs](#outputs)
+10. [Contributing a New Agent](#contributing-a-new-agent)
+11. [Limitations](#limitations)
+12. [License](#license)
 
 ---
 
 ## Key Features
 
 - **Philosopher-agent lenses** — each agent has its own `checklist.yaml`, `principles.md`,
-  `prompt.md`, `scoring.yaml`, and `schema.json`.
+  `prompt.md`, `schema.json`, and a structured `persona.yaml` interpretation profile.
 - **Evidence registry** — every finding must reference a registered `EvidenceRecord` with
-  a unique `EV-<timestamp>-<hash>` ID. Findings with no `evidence_ids` are automatically
+  an `EV-<timestamp>-<hash>` reference ID. Findings with no `evidence_ids` are automatically
   confidence-downgraded by the guardrail layer.
 - **Arbiter conflict resolution** — when agents disagree on the same evidence, the Arbiter
   groups findings, detects conflicts, and applies a conservative-safety resolution policy.
@@ -44,18 +45,23 @@ a structured audit report.
   agreement, and counter-argument strength.
 - **Report generation** — outputs one JSON and one Markdown report per run, saved under
   `outputs/` as `report_<RUN-ID>.json` and `report_<RUN-ID>.md`.
+- **Design guidance** ??see `docs/philosopher_agent_design_ko.md` for agent-expansion
+  criteria and `docs/ethical_pentest_ai_architecture_ko.md` for the proposed gated
+  deployment architecture.
 
 ---
 
 ## Philosopher Agents
 
 Each agent resides in `ethical_redteam_harness/agents/<name>/`.
-The `AgentLoader` discovers agents automatically — any directory containing the four
-required files (`prompt.md`, `checklist.yaml`, `schema.json`, `principles.md`) is loaded.
+The `AgentLoader` discovers agents automatically — any directory containing
+runtime files (`prompt.md`, `checklist.yaml`, `schema.json`, `principles.md`, and
+`persona.yaml`) is loaded.
 The `arbiter` directory is treated as a meta-agent and excluded from agent evaluation runs.
 
 | Agent directory | Notes |
 |---|---|
+| `buddha` | Suffering, craving, non-attachment, reactive de-escalation |
 | `nietzsche` | Autonomy, will-to-power suppression, herd-morality injection |
 | `heidegger` | Dehumanization, toolification, inauthenticity |
 | `albert_camus` | Absurdism, existential harm, false hope |
@@ -72,6 +78,22 @@ The `arbiter` directory is treated as a meta-agent and excluded from agent evalu
 
 > **Note**: Agent evaluation logic is currently implemented as mock simulations
 > in `main.py::_mock_simulate()`. Real LLM integration is a planned next step.
+
+---
+
+## Interpretation Profiles
+
+Every agent now carries a structured `persona.yaml` file so the project can encode more
+than surface-level writing style. The profile contract is validated by `AgentLoader`
+and captures each philosopher's human view, core problem, encouraged and cautioned
+values, forbidden misreadings, tone rules, interpretation rules, response style, and
+contrast with other philosophers.
+
+The new `buddha` agent is intentionally separated from `nietzsche`: Buddha tracks
+craving, attachment, and reactivity, while Nietzsche presses on self-overcoming,
+strength, and herd morality. See `docs/philosopher_agent_design_ko.md` for the full
+agent-design rationale and `docs/ethical_pentest_ai_architecture_ko.md` for the
+broader ethical pentest architecture proposal.
 
 ---
 
@@ -265,14 +287,15 @@ Each run produces two files in `outputs/`:
 | `report_<RUN-ID>.json` | JSON | Full `ArbiterOutputSchema` serialized via Pydantic `model_dump_json` |
 | `report_<RUN-ID>.md` | Markdown | Human-readable report rendered by `ReportRenderer` using Jinja2 |
 
-Evidence records are written to `evidence/` as `EV-<timestamp>-<hash>.json`.
+Evidence records are written to `evidence/` using `EV-<timestamp>-<hash>.json` filenames.
 
 ---
 
 ## Contributing a New Agent
 
 1. Create `ethical_redteam_harness/agents/<name>/`.
-2. Add the four required files:
+2. Add the five required files:
+   - `persona.yaml` ??structured philosopher interpretation profile
    - `checklist.yaml` — list of evaluation questions
    - `principles.md` — philosophical principles
    - `prompt.md` — LLM system prompt template
@@ -289,9 +312,9 @@ Evidence records are written to `evidence/` as `EV-<timestamp>-<hash>.json`.
 
 - LLM integration is not yet implemented. The current pipeline runs mock simulations
   defined in `main.py::_mock_simulate()`.
-- Only `nietzsche`, `heidegger`/`albert_camus`/`augustine` (grouped), and `socrates`
-  have mock-specific logic. All other agents fall through to a generic stub in
-  `engine.py::_simulate_agent_execution()`.
+- Only `nietzsche`, `buddha`, `heidegger`/`albert_camus`/`augustine` (grouped), and
+  `socrates` have mock-specific logic. Other agents currently use the
+  generic stub path in `engine.py::_simulate_agent_execution()`.
 - There are no automated tests (`pytest`, `tox`, etc.) in the repository at this time.
 - The report renderer requires `jinja2` but the dependency is not declared in a
   package manifest.

@@ -62,6 +62,8 @@ class RiskCalculator:
         # 1. 도메인 위험도 판별
         if context.high_risk:
             score_multiplier += 0.2
+        if context.sensitive_data:
+            score_multiplier += 0.2
             
         # 2. 취약계층 영향도 판별
         content_to_check = finding.finding_summary + " " + " ".join(finding.finding_groups)
