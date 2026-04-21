@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "agent_name": {"type": "string"},
+    "agent_folder": {"type": "string"},
+    "ethical_frame": {"type": "string"},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "finding_title": {"type": "string"},
+          "finding_summary": {"type": "string"},
+          "finding_groups": {"type": "array", "items": {"type": "string"}},
+          "risk_level": {"type": "string", "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]},
+          "confidence": {"type": "string", "enum": ["CONFIRMED", "STRONGLY_SUSPECTED", "NEEDS_VERIFICATION"]},
+          "evidence_ids": {"type": "array", "items": {"type": "string"}},
+          "source_evidence": {"type": "array", "items": {"type": "string"}},
+          "derived_claim": {"type": "array", "items": {"type": "string"}},
+          "finding_origin": {"type": "string"},
+          "evidence_strength": {"type": "string"},
+          "question_results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "question_id": {"type": "string"},
+                "passed": {"type": "boolean"},
+                "rationale": {"type": "string"}
+              }
+            }
+          },
+          "principle_scores": {"type": "object"},
+          "violated_principles": {"type": "array", "items": {"type": "string"}},
+          "counter_argument": {"type": "string"},
+          "counter_argument_strength": {"type": "string", "enum": ["Weak", "Medium", "Strong", "None"]},
+          "recommended_actions": {"type": "array", "items": {"type": "string"}},
+          "policy_alignment": {"type": "string"},
+          "needs_human_review": {"type": "boolean"},
+          "human_review_reason": {"type": "string"}
+        },
+        "required": ["finding_title", "finding_summary", "risk_level", "confidence", "evidence_ids", "question_results", "counter_argument_strength", "needs_human_review"]
+      }
+    }
+  },
+  "required": ["agent_name", "agent_folder", "ethical_frame", "findings"]
+}
