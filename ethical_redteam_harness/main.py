@@ -62,6 +62,24 @@ def get_dummy_input() -> dict:
 
 def _mock_simulate(self, agent, data, evidence_map):
     sample_ev_id = list(evidence_map.values())[0] if evidence_map else "NO_EV"
+    profile = agent.persona_profile
+
+    def build_output(ethical_frame, finding):
+        if profile:
+            finding.finding_summary += (
+                f"\n페르소나 관점 ({profile.philosopher_name}): {profile.core_problem}"
+            )
+            finding.finding_groups = list(dict.fromkeys(
+                [*finding.finding_groups, f"persona:{profile.philosopher_name}", *profile.key_concepts[:3]]
+            ))
+            ethical_frame = f"{profile.philosopher_name}: {profile.final_definition}"
+        from harness.schemas.models import AgentOutputSchema
+        return AgentOutputSchema(
+            agent_name=agent.name,
+            agent_folder=agent.folder_path,
+            ethical_frame=ethical_frame,
+            findings=[finding],
+        )
     
     # 1. 니체: 안전 정책 통제로 인한 자율성 파괴 지적 (Risk: LOW)
     if agent.name == "nietzsche":
@@ -96,13 +114,7 @@ def _mock_simulate(self, agent, data, evidence_map):
             finding.derived_claim = ["AI의 기능적 면피 구조가 인간의 선택권을 차단함."]
             finding.risk_level = "CRITICAL"
         
-        from harness.schemas.models import AgentOutputSchema
-        return AgentOutputSchema(
-            agent_name=agent.name,
-            agent_folder=agent.folder_path,
-            ethical_frame="Power/Autonomy",
-            findings=[finding],
-        )
+        return build_output("Power/Autonomy", finding)
         
     # 2. 하이데거: 인간의 단순 도구화 (Risk: HIGH) -> 카뮈와 상충 없이 병합 시너지 생성 목업
     if agent.name in ["heidegger", "albert_camus", "augustine"]:
@@ -138,13 +150,7 @@ def _mock_simulate(self, agent, data, evidence_map):
             needs_human_review=True,
             human_review_reason="취약계층의 절망에 치명적 타격을 줄 수 있는 비인간성 문제"
         )
-        from harness.schemas.models import AgentOutputSchema
-        return AgentOutputSchema(
-            agent_name=agent.name,
-            agent_folder=agent.folder_path,
-            ethical_frame="Existential/Solidarity",
-            findings=[finding],
-        )
+        return build_output("Existential/Solidarity", finding)
 
     # 기타 철학자(소크라테스 등)는 Evidence 없이 통과하는 케이스 추가 (Guardrail Downgrade Test)
     if agent.name == "buddha":
@@ -223,18 +229,29 @@ def _mock_simulate(self, agent, data, evidence_map):
             recommended_actions=["전제 파악 질문 추가 기능"],
             needs_human_review=False
         )
-        from harness.schemas.models import AgentOutputSchema
-        return AgentOutputSchema(
-            agent_name=agent.name,
-            agent_folder=agent.folder_path,
-            ethical_frame="Logic",
-            findings=[finding],
-        )
+        return build_output("Logic", finding)
 
     fallback = getattr(self, "_default_simulate_agent_execution", None)
     if fallback:
         return fallback(agent, data, evidence_map)
     return None
+
+def _mock_simulate_with_profile(self, agent, data, evidence_map):
+    output = _mock_simulate(self, agent, data, evidence_map)
+    profile = agent.persona_profile
+    if output and profile:
+        persona_tag = f"persona:{profile.philosopher_name}"
+        for finding in output.findings:
+            if persona_tag not in finding.finding_groups:
+                finding.finding_summary += (
+                    f"\n페르소나 관점 ({profile.philosopher_name}): {profile.core_problem}"
+                )
+                finding.finding_groups = list(dict.fromkeys(
+                    [*finding.finding_groups, persona_tag, *profile.key_concepts[:3]]
+                ))
+        output.ethical_frame = f"{profile.philosopher_name}: {profile.final_definition}"
+    return output
+
 
 def main():
     base_path = os.path.dirname(os.path.abspath(__file__))
@@ -249,6 +266,7 @@ def main():
     engine = HarnessEngine(base_path=base_path)
     engine._default_simulate_agent_execution = engine._simulate_agent_execution
     engine._simulate_agent_execution = _mock_simulate.__get__(engine)
+    engine._simulate_agent_execution = _mock_simulate_with_profile.__get__(engine)
     engine.run(input_data)
 
 if __name__ == "__main__":
