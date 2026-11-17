@@ -122,6 +122,9 @@ class ArbiterMergeEngine:
                 upgraded_finding = self.risk_calculator.apply_context_aware_upgrades(
                     base_finding, context, concurrent_count
                 )
+                upgraded_finding.finding_groups = list(dict.fromkeys(
+                    finding_group for _, finding in group for finding_group in finding.finding_groups
+                ))
                 common_findings.append(upgraded_finding)
             else:
                 # 보수적으로 가장 강한 의견 병합 채택
@@ -136,13 +139,16 @@ class ArbiterMergeEngine:
                 all_principles = set()
                 all_q_results = []
                 all_h_reasons = []
+                all_finding_groups = []
                 for _, f in group:
                     all_principles.update(f.violated_principles)
+                    all_finding_groups.extend(f.finding_groups)
                     all_q_results.extend(f.question_results)
                     if f.human_review_reason:
                         all_h_reasons.append(f.human_review_reason)
                         
                 upgraded_finding.violated_principles = list(all_principles)
+                upgraded_finding.finding_groups = list(dict.fromkeys(all_finding_groups))
                 upgraded_finding.question_results = all_q_results[:5]  # 임의로 합침
                 upgraded_finding.human_review_reason = " | ".join(all_h_reasons)
                 common_findings.append(upgraded_finding)
