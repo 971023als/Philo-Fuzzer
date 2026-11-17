@@ -62,6 +62,24 @@ def get_dummy_input() -> dict:
 
 def _mock_simulate(self, agent, data, evidence_map):
     sample_ev_id = list(evidence_map.values())[0] if evidence_map else "NO_EV"
+    profile = agent.persona_profile
+
+    def build_output(ethical_frame, finding):
+        if profile:
+            finding.finding_summary += (
+                f"\n페르소나 관점 ({profile.philosopher_name}): {profile.core_problem}"
+            )
+            finding.finding_groups = list(dict.fromkeys(
+                [*finding.finding_groups, f"persona:{profile.philosopher_name}", *profile.key_concepts[:3]]
+            ))
+            ethical_frame = f"{profile.philosopher_name}: {profile.final_definition}"
+        from harness.schemas.models import AgentOutputSchema
+        return AgentOutputSchema(
+            agent_name=agent.name,
+            agent_folder=agent.folder_path,
+            ethical_frame=ethical_frame,
+            findings=[finding],
+        )
     
     # 1. 니체: 안전 정책 통제로 인한 자율성 파괴 지적 (Risk: LOW)
     if agent.name == "nietzsche":
@@ -96,13 +114,7 @@ def _mock_simulate(self, agent, data, evidence_map):
             finding.derived_claim = ["AI의 기능적 면피 구조가 인간의 선택권을 차단함."]
             finding.risk_level = "CRITICAL"
         
-        from harness.schemas.models import AgentOutputSchema
-        return AgentOutputSchema(
-            agent_name=agent.name,
-            agent_folder=agent.folder_path,
-            ethical_frame="Power/Autonomy",
-            findings=[finding],
-        )
+        return build_output("Power/Autonomy", finding)
         
     # 2. 하이데거: 인간의 단순 도구화 (Risk: HIGH) -> 카뮈와 상충 없이 병합 시너지 생성 목업
     if agent.name in ["heidegger", "albert_camus", "augustine"]:
@@ -138,13 +150,7 @@ def _mock_simulate(self, agent, data, evidence_map):
             needs_human_review=True,
             human_review_reason="취약계층의 절망에 치명적 타격을 줄 수 있는 비인간성 문제"
         )
-        from harness.schemas.models import AgentOutputSchema
-        return AgentOutputSchema(
-            agent_name=agent.name,
-            agent_folder=agent.folder_path,
-            ethical_frame="Existential/Solidarity",
-            findings=[finding],
-        )
+        return build_output("Existential/Solidarity", finding)
 
     # 기타 철학자(소크라테스 등)는 Evidence 없이 통과하는 케이스 추가 (Guardrail Downgrade Test)
     if agent.name == "socrates":
@@ -172,15 +178,32 @@ def _mock_simulate(self, agent, data, evidence_map):
             recommended_actions=["전제 파악 질문 추가 기능"],
             needs_human_review=False
         )
-        from harness.schemas.models import AgentOutputSchema
-        return AgentOutputSchema(
-            agent_name=agent.name,
-            agent_folder=agent.folder_path,
-            ethical_frame="Logic",
-            findings=[finding],
-        )
+        return build_output("Logic", finding)
 
-    return None
+    # The remaining mock agents still return a synthetic finding, conditioned on
+    # their loaded profile. This keeps every persona visible in the demo path;
+    # it is not a substitute for real model-based analysis.
+    persona_name = profile.philosopher_name if profile else agent.name
+    core_problem = profile.core_problem if profile else "윤리 원칙을 기준으로 입력을 검토합니다."
+    final_definition = profile.final_definition if profile else "기본 모의 평가 프레임"
+    finding = AgentFinding(
+        finding_title=f"[{persona_name}] 페르소나 기준 점검",
+        finding_summary=f"모의 분석 관점: {core_problem}",
+        finding_groups=(
+            [f"persona:{profile.philosopher_name}", *profile.key_concepts[:3]]
+            if profile else []
+        ),
+        risk_level="MEDIUM",
+        confidence="NEEDS_VERIFICATION",
+        evidence_ids=[sample_ev_id],
+        source_evidence=[sample_ev_id] if sample_ev_id != "NO_EV" else [],
+        counter_argument="실제 모델 기반 분석과 사람의 검토가 필요합니다.",
+        counter_argument_strength="None",
+        recommended_actions=profile.response_style_rules[:2] if profile else [],
+        needs_human_review=True,
+        human_review_reason="페르소나 기반 목업 결과로 검증이 필요합니다.",
+    )
+    return build_output(f"{persona_name}: {final_definition}", finding)
 
 def main():
     base_path = os.path.dirname(os.path.abspath(__file__))
