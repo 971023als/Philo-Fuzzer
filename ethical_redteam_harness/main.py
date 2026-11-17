@@ -180,30 +180,27 @@ def _mock_simulate(self, agent, data, evidence_map):
         )
         return build_output("Logic", finding)
 
-    # The remaining mock agents still return a synthetic finding, conditioned on
-    # their loaded profile. This keeps every persona visible in the demo path;
-    # it is not a substitute for real model-based analysis.
-    persona_name = profile.philosopher_name if profile else agent.name
-    core_problem = profile.core_problem if profile else "윤리 원칙을 기준으로 입력을 검토합니다."
-    final_definition = profile.final_definition if profile else "기본 모의 평가 프레임"
-    finding = AgentFinding(
-        finding_title=f"[{persona_name}] 페르소나 기준 점검",
-        finding_summary=f"모의 분석 관점: {core_problem}",
-        finding_groups=(
-            [f"persona:{profile.philosopher_name}", *profile.key_concepts[:3]]
-            if profile else []
-        ),
-        risk_level="MEDIUM",
-        confidence="NEEDS_VERIFICATION",
-        evidence_ids=[sample_ev_id],
-        source_evidence=[sample_ev_id] if sample_ev_id != "NO_EV" else [],
-        counter_argument="실제 모델 기반 분석과 사람의 검토가 필요합니다.",
-        counter_argument_strength="None",
-        recommended_actions=profile.response_style_rules[:2] if profile else [],
-        needs_human_review=True,
-        human_review_reason="페르소나 기반 목업 결과로 검증이 필요합니다.",
-    )
-    return build_output(f"{persona_name}: {final_definition}", finding)
+    fallback = getattr(self, "_default_simulate_agent_execution", None)
+    if fallback:
+        return fallback(agent, data, evidence_map)
+    return None
+
+def _mock_simulate_with_profile(self, agent, data, evidence_map):
+    output = _mock_simulate(self, agent, data, evidence_map)
+    profile = agent.persona_profile
+    if output and profile:
+        persona_tag = f"persona:{profile.philosopher_name}"
+        for finding in output.findings:
+            if persona_tag not in finding.finding_groups:
+                finding.finding_summary += (
+                    f"\n페르소나 관점 ({profile.philosopher_name}): {profile.core_problem}"
+                )
+                finding.finding_groups = list(dict.fromkeys(
+                    [*finding.finding_groups, persona_tag, *profile.key_concepts[:3]]
+                ))
+        output.ethical_frame = f"{profile.philosopher_name}: {profile.final_definition}"
+    return output
+
 
 def main():
     base_path = os.path.dirname(os.path.abspath(__file__))
@@ -216,7 +213,9 @@ def main():
         sys.exit(1)
 
     engine = HarnessEngine(base_path=base_path)
+    engine._default_simulate_agent_execution = engine._simulate_agent_execution
     engine._simulate_agent_execution = _mock_simulate.__get__(engine)
+    engine._simulate_agent_execution = _mock_simulate_with_profile.__get__(engine)
     engine.run(input_data)
 
 if __name__ == "__main__":
